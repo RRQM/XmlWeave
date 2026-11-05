@@ -276,6 +276,19 @@ public class GeneratorTests
     }
 
     [Fact]
+    public void GeneratedFastPathUsesBuffersRatherThanXmlTrees()
+    {
+        var result = Run("using XmlWeave; [XmlWeaveRoot] public class Model { public int Value {get;set;} }");
+        var source = Assert.Single(result.GeneratedTrees).GetText().ToString();
+        Assert.Contains("IBufferWriter<byte>", source);
+        Assert.Contains("ReadOnlySpan<byte>", source);
+        Assert.Contains("ReadOnlySequence<byte>", source);
+        Assert.DoesNotContain("XElement", source);
+        Assert.DoesNotContain("XmlWeaveDocument", source);
+        Assert.DoesNotContain("HashSet", source);
+    }
+
+    [Fact]
     public void UnmarkedModelsGenerateNothing() => Assert.Empty(Run("public class Model { public int Value {get;set;} }").GeneratedTrees);
 
     private static GeneratorDriverRunResult Run(string source)
