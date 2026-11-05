@@ -6,10 +6,6 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="XmlWeave.Tests.cs" />
-    <Compile Include="BufferTests.cs" />
-    <Compile Include="ScalarTests.cs" />
-    <Compile Include="ReaderTests.cs" />
     <ProjectReference Include="..\XmlWeave\XmlWeave.csproj" />
     <ProjectReference Include="..\XmlWeave.SourceGenerator\XmlWeave.SourceGenerator.csproj" />
     <Analyzer Include="..\XmlWeave.SourceGenerator\bin\XmlWeave.SourceGenerator\$(Configuration)\netstandard2.0\XmlWeave.SourceGenerator.dll" />
