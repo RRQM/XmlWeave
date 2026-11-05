@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="XmlWeave.Tests.cs" />
     <Compile Include="BufferTests.cs" />
+    <Compile Include="FormattingTests.cs" />
     <Compile Include="ScalarTests.cs" />
     <Compile Include="ReaderTests.cs" />
     <ProjectReference Include="..\XmlWeave\XmlWeave.csproj" />

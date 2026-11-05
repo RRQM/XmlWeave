@@ -19,6 +19,12 @@ public ref struct XmlWeaveWriter
     private readonly IBufferWriter<byte> _output;
     private readonly long _maxCharacters;
     private readonly int _maxDepth;
+    private readonly bool _newLineOnElements;
+    private readonly bool _newLineOnAttributes;
+    private readonly bool _indent;
+    private readonly string _indentChars;
+    private readonly string _newLineChars;
+    private byte[]? _content;
     private long _characters;
     private int _depth;
     private bool _startOpen;
@@ -34,6 +40,12 @@ public ref struct XmlWeaveWriter
         _output = output;
         _maxCharacters = options?.MaxCharacters ?? 10_000_000;
         _maxDepth = options?.MaxDepth ?? 64;
+        _newLineOnElements = options?.NewLineOnElements ?? false;
+        _newLineOnAttributes = options?.NewLineOnAttributes ?? false;
+        _indent = options?.Indent ?? false;
+        _indentChars = options?.IndentChars ?? "  ";
+        _newLineChars = options?.NewLineChars ?? "\n";
+        _content = null;
         _characters = 0;
         _depth = 0;
         _startOpen = false;
@@ -48,9 +60,16 @@ public ref struct XmlWeaveWriter
         CheckDisposed();
         ArgumentNullException.ThrowIfNull(name);
         if (_depth >= _maxDepth) throw Error("Maximum XML depth exceeded.");
+        if (_newLineOnElements) EnsureContentCapacity();
         CloseStart();
+        if (_newLineOnElements && _depth > 0)
+        {
+            if ((_content![_depth - 1] & 1) == 0) WriteLine(_depth);
+            _content[_depth - 1] |= 2;
+        }
         Raw("<");
         Raw(name);
+        if (_newLineOnElements) _content![_depth] = 0;
         _depth++;
         _startOpen = true;
     }
@@ -70,6 +89,7 @@ public ref struct XmlWeaveWriter
         ArgumentNullException.ThrowIfNull(name);
         if (_depth == 0) throw Error("No element to close.");
         CloseStart();
+        if (_newLineOnElements && _content![_depth - 1] == 2) WriteLine(_depth - 1);
         Raw("</");
         Raw(name);
         Raw(">");
@@ -82,7 +102,8 @@ public ref struct XmlWeaveWriter
         CheckDisposed();
         ArgumentNullException.ThrowIfNull(name);
         if (!_startOpen) throw Error("Attributes require an open start element.");
-        Raw(" ");
+        if (_newLineOnAttributes) WriteLine(_depth);
+        else Raw(" ");
         Raw(name);
         Raw("=\"");
         Escaped(value, true);
@@ -95,6 +116,7 @@ public ref struct XmlWeaveWriter
         CheckDisposed();
         if (_depth == 0) throw Error("Text requires an element.");
         CloseStart();
+        if (_newLineOnElements) _content![_depth - 1] |= 1;
         Escaped(value, false);
     }
 
@@ -144,8 +166,32 @@ public ref struct XmlWeaveWriter
             ArrayPool<object>.Shared.Return(_active, clearArray: true);
             _active = null;
         }
+        if (_content is not null)
+        {
+            ArrayPool<byte>.Shared.Return(_content);
+            _content = null;
+        }
         _activeCount = 0;
         _disposed = true;
+    }
+
+    private void EnsureContentCapacity()
+    {
+        if (_content is null) _content = ArrayPool<byte>.Shared.Rent(Math.Min(_maxDepth, 64));
+        else if (_depth == _content.Length)
+        {
+            byte[] next = ArrayPool<byte>.Shared.Rent((int)Math.Min(_maxDepth, (long)_content.Length * 2));
+            _content.AsSpan(0, _depth).CopyTo(next);
+            ArrayPool<byte>.Shared.Return(_content);
+            _content = next;
+        }
+    }
+
+    private void WriteLine(int depth)
+    {
+        Raw(_newLineChars);
+        if (_indent)
+            for (int i = 0; i < depth; i++) Raw(_indentChars);
     }
 
     private void CloseStart()

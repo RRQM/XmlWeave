@@ -20,6 +20,24 @@
 
 `XmlWeaveMemberAttribute.Name` 覆盖 XML 名称，`Representation` 可指定 Auto、Attribute、Element。`XmlWeaveIgnoreAttribute` 显式排除成员。`XmlWeaveConverterAttribute` 指定实现 `IXmlWeaveConverter<T>` 的无状态转换器；其 Format/Parse 负责文化无关表示。
 
+## 序列化格式
+
+生成的序列化器所有写入入口（字符串、Stream、IBufferWriter<byte>）均通过 `XmlWeaveOptions` 控制格式，默认保持原有紧凑输出：
+
+```csharp
+var options = new XmlWeaveOptions
+{
+    NewLineOnElements = true,   // 子元素及包含子元素的结束标签换行
+    Indent = true,              // 对新增的格式化行按深度缩进
+    NewLineOnAttributes = true, // 每个属性单独换行（包括命名空间和 null 标记）
+    IndentChars = "  ",         // 每级两个空格，也可使用 "\t"
+    NewLineChars = "\n"         // 支持 "\n"、"\r\n"、"\r"
+};
+var xml = MyModelXmlSerializer.Serialize(model, options);
+```
+
+三个开关独立控制：仅开启 `Indent` 不产生换行；仅开启属性换行时，元素仍可保持同行。属性缩进比所属元素多一级。缩进字符只允许空格或制表符，也可为空。标量文本、空字符串及空节点不会被插入格式化空白；文本和属性中的原始换行仍按原有转义规则保留。格式化增加的空白计入 `MaxCharacters`。这些设置不改变读取规则；传统 `XmlWeaveDocument.Write(XElement)` 辅助入口仍使用紧凑格式。
+
 ## 分配边界
 
 - 参考 System.Text.Json 的源生成快速路径：编译期生成成员分派和标量处理，无运行时反射、DOM 或标量字符串中转。
