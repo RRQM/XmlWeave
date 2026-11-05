@@ -16,14 +16,14 @@ try {
     Invoke-DotNet restore XmlWeave.PackageTests.csproj --force "-p:RestoreAdditionalProjectSources=$feed"
     Invoke-DotNet run --project XmlWeave.PackageTests.csproj -c Release --no-restore
     $trimmed = Join-Path $feed 'trimmed'
-    Invoke-DotNet publish XmlWeave.PackageTests.csproj -c Release -r $Runtime --self-contained true -p:PublishTrimmed=true -p:ILLinkTreatWarningsAsErrors=true -o $trimmed
+    Invoke-DotNet publish XmlWeave.PackageTests.csproj -c Release -r $Runtime --self-contained true '-p:PublishTrimmed=true' '-p:ILLinkTreatWarningsAsErrors=true' -o $trimmed
     $exe = Join-Path $trimmed 'XmlWeave.PackageTests'
     if ($Runtime.StartsWith('win-')) { $exe += '.exe' }
     & $exe
     if ($LASTEXITCODE -ne 0) { throw '裁剪验证失败。' }
     if ($Aot) {
         $aotOutput = Join-Path $feed 'aot'
-        Invoke-DotNet publish XmlWeave.PackageTests.csproj -c Release -r $Runtime --self-contained true -p:PublishAot=true -p:ILLinkTreatWarningsAsErrors=true -p:IlcTreatWarningsAsErrors=true -o $aotOutput
+        Invoke-DotNet publish XmlWeave.PackageTests.csproj -c Release -r $Runtime --self-contained true '-p:PublishAot=true' '-p:ILLinkTreatWarningsAsErrors=true' '-p:IlcTreatWarningsAsErrors=true' -o $aotOutput
         $exe = Join-Path $aotOutput 'XmlWeave.PackageTests'
         if ($Runtime.StartsWith('win-')) { $exe += '.exe' }
         & $exe
