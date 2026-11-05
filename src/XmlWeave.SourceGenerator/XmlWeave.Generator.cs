@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -65,8 +66,19 @@ public sealed class XmlWeaveGenerator : IIncrementalGenerator
         private readonly Dictionary<ITypeSymbol, List<Member>> members = new Dictionary<ITypeSymbol, List<Member>>(SymbolEqualityComparer.Default);
         private readonly StringBuilder code = new StringBuilder();
         public Builder(INamedTypeSymbol root) { this.root = root; }
-        public string HintName => "XmlWeave_" + Encode(root.ToDisplayString()) + ".g.cs";
-        private static string Encode(string value) => string.Concat(value.Select(c => ((int)c).ToString("x4", CultureInfo.InvariantCulture)));
+        public string HintName
+        {
+            get
+            {
+                var name = root.Name.Length > 32 ? root.Name.Substring(0, 32) : root.Name;
+                using (var sha256 = SHA256.Create())
+                {
+                    var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(root.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
+                    var suffix = string.Concat(hash.Take(16).Select(b => b.ToString("x2", CultureInfo.InvariantCulture)));
+                    return name + "." + suffix + ".g.cs";
+                }
+            }
+        }
         private static string Type(ITypeSymbol type) => type.ToDisplayString(TypeFormat);
         private static string Literal(string value) => SymbolDisplay.FormatLiteral(value, true);
         private static AttributeData? Attribute(ISymbol symbol, string name) => symbol.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "XmlWeave." + name);
