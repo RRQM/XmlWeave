@@ -257,6 +257,29 @@ public class GeneratorTests
         Assert.Equal(2, driver.GetRunResult().GeneratedTrees.Length);
     }
 
+    [Fact]
+    public void GeneratedFileNamesAreShortReadableUniqueAndStable()
+    {
+        var longName = new string('M', 200);
+        var source = "using XmlWeave; namespace " + new string('N', 200) +
+            " { [XmlWeaveRoot] public class " + longName + " {} }" +
+            " namespace A { [XmlWeaveRoot] public class Model {} }" +
+            " namespace B { [XmlWeaveRoot] public class Model {} }" +
+            " namespace 示例 { [XmlWeaveRoot] public class 模型 {} }";
+        var result = Run(source);
+        Assert.Empty(result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+        var names = result.Results.Single().GeneratedSources.Select(s => s.HintName).ToArray();
+        Assert.Equal(4, names.Length);
+        Assert.Equal(4, names.Distinct().Count());
+        Assert.All(names, name => Assert.True(name.Length <= 70, name));
+        Assert.Matches("^" + new string('M', 32) + @"\.[0-9a-f]{32}\.g\.cs$", names[0]);
+        Assert.All(names.Skip(1).Take(2), name => Assert.Matches(@"^Model\.[0-9a-f]{32}\.g\.cs$", name));
+        Assert.StartsWith("模型.", names[3]);
+        var reordered = Run(source.Replace("namespace A", "namespace Temp").Replace("namespace B", "namespace A").Replace("namespace Temp", "namespace B"));
+        Assert.Equal(names.OrderBy(n => n), reordered.Results.Single().GeneratedSources.Select(s => s.HintName).OrderBy(n => n));
+        Assert.Equal(names, Run(source).Results.Single().GeneratedSources.Select(s => s.HintName).ToArray());
+    }
+
     [Theory]
     [InlineData("public class Base { public virtual int Value {get;set;} } [XmlWeaveRoot] public class Model : Base { public override int Value {get;set;} }")]
     [InlineData("[XmlWeaveRoot] internal class Model { public int Value {get;set;} }")]

@@ -6,7 +6,7 @@
 
 [NuGet 包](https://www.nuget.org/packages/XmlWeave) · [源码与问题反馈](https://github.com/RRQM/XmlWeave)
 
-> 当前版本 **0.1.5**。已发布版本见 [NuGet.org](https://www.nuget.org/packages/XmlWeave)。Windows x64 和 Linux CI 已验证测试、真实包消费、裁剪及 NativeAOT。
+> 当前版本 **0.1.6**。已发布版本见 [NuGet.org](https://www.nuget.org/packages/XmlWeave)。Windows x64 和 Linux CI 已验证测试、真实包消费、裁剪及 NativeAOT。
 
 ## 核心特性
 
@@ -94,7 +94,7 @@ Book fromStream = BookXmlSerializer.Deserialize(stream);
 
 ## 公共 API
 
-根模型使用 `XmlWeaveRootAttribute` 显式标记，生成同命名空间下的 `类型名XmlSerializer` 静态类。无需根类型声明为 partial。
+根模型使用 `XmlWeaveRootAttribute` 显式标记，生成同命名空间下的 `类型名XmlSerializer` 静态类。无需根类型声明为 partial。生成文件名使用 `类名.<稳定摘要>.g.cs`（类名前缀最多 32 个字符，总长最多 70 个字符），摘要基于完整类型名，区分不同命名空间的同名模型；此文件名不影响序列化器类名或公共 API。
 
 生成的 `Serialize(IBufferWriter<byte>, T, XmlWeaveOptions?)` 直接输出 UTF-8；`Deserialize(ReadOnlySpan<byte>, XmlWeaveOptions?)` 直接读取 UTF-8。支持 `Deserialize(in ReadOnlySequence<byte>, XmlWeaveOptions?)`；单段直接读取，多段使用 ArrayPool 合并后解析，不支持暂停/续读。
 
