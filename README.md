@@ -43,7 +43,7 @@
 - `src/XmlWeave.PackageTests/`：包消费者测试项目及源码，不加入解决方案，以便先打包再从本地源安装验证。
 - 根目录保留验证脚本、SDK 配置、文档与许可证。
 
-可在根目录执行 `dotnet build src/XmlWeave.slnx -c Release`。
+可在根目录执行 `dotnet build src/XmlWeave.slnx -c Release`。本地构建会自动生成 NuGet 包；若 `D:\Nuget\local` 已存在，构建或显式打包后会尝试将生成的 `.nupkg` 复制到该目录，复制失败仅报告警告。目录不存在时跳过，不会自动创建；CI（`CI=true` 或 `ContinuousIntegrationBuild=true`）不启用自动打包和复制。可通过 `-p:GeneratePackageOnBuild=false` 关闭构建时自动打包。
 
 ## 验证与打包
 
@@ -55,6 +55,17 @@
 
 ## 发布与 CI 状态
 
-已通过 .NET 8 构建及 Windows x64 实际包、裁剪、NativeAOT 验证。包消费者固定使用已修补的 .NET 8.0.33 原生编译工具链。GitHub Actions 工作流位于 `.github/workflows/ci.yml`，推送和 PR 时在 Linux 执行完整验证并上传 nupkg；不自动发布到 NuGet。
+已通过 .NET 8 构建及 Windows x64 实际包、裁剪、NativeAOT 验证。包消费者固定使用已修补的 .NET 8.0.33 原生编译工具链。GitHub Actions 工作流位于 `.github/workflows/ci.yml`，推送和 PR 时在 Linux 执行完整验证并上传 nupkg，不发布到 NuGet。
 
-实际发布需要维护者明确授权并配置 NuGet Trusted Publishing 或提供受控发布凭据；本实现不读取或搜索敏感凭据。原子文件保存、业务格式版本及消费者迁移策略不属于本库职责。
+### 发布到 NuGet.org
+
+`.github/workflows/publish-nuget.yml` 在 GitHub Release 发布（`published`）时触发，草稿 Release 或仅推送标签不会触发：
+
+1. 在仓库 Actions Secrets 中设置 `NUGET_API_KEY`，密钥需要具有 `XmlWeave` 和 `XmlWeave.SourceGenerator` 两个包的推送权限。
+2. 更新 `src/Directory.Build.props` 的 `Version`（消费者验证项目通过 `XmlWeavePackageVersion` 默认使用该版本），提交并合并发布代码。
+3. 从该提交创建并发布 GitHub Release，标签必须为 `v<Version>`，例如 `v0.1.0`；预发布版本同样需要在 `Version` 中带后缀，例如 `0.2.0-rc.1` 对应 `v0.2.0-rc.1`。流程检查标签与项目版本一致，不会根据标签覆盖包版本。
+4. 流程检出该标签，执行测试、打包、真实 NuGet 包消费者、裁剪与 NativeAOT 验证，上传两个 `.nupkg`，全部通过后使用 Secret 发布到 NuGet.org。
+
+重复运行会跳过 NuGet.org 上已存在的版本，以便恢复部分发布；已发布的版本不能覆盖，修改内容后需递增版本号。密钥仅注入发布步骤，不应提交到仓库。首次发布前请确认两个包名可用。
+
+原子文件保存、业务格式版本及消费者迁移策略不属于本库职责。

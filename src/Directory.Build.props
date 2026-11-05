@@ -12,6 +12,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <GeneratePackageOnBuild Condition="'$(CI)' != 'true' and '$(ContinuousIntegrationBuild)' != 'true'">true</GeneratePackageOnBuild>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -19,4 +20,11 @@
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
+  <Target Name="CopyNuGetPackage" AfterTargets="Pack"
+          Condition="'$(CI)' != 'true' and '$(ContinuousIntegrationBuild)' != 'true' and '$(IsPackable)' != 'false' and Exists('D:\Nuget\local')">
+    <Copy SourceFiles="$(PackageOutputPath)\$(PackageId).$(PackageVersion).nupkg"
+          DestinationFolder="D:\Nuget\local"
+          SkipUnchangedFiles="true"
+          ContinueOnError="WarnAndContinue" />
+  </Target>
 </Project>

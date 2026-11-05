@@ -1,0 +1,56 @@
+name: Publish NuGet
+on:
+  release:
+    types: [published]
+permissions:
+  contents: read
+concurrency:
+  group: publish-nuget-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Validate release version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          $version = & dotnet msbuild src/XmlWeave/XmlWeave.csproj -nologo -getProperty:Version
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to read package version.' }
+          $version = ($version -join "`n").Trim()
+          if ($env:RELEASE_TAG -cne "v$version") {
+            throw "Release tag must be v$version to match src/Directory.Build.props."
+          }
+      - name: Install NativeAOT prerequisites
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+      - name: Test, pack, consume packages, trim and NativeAOT
+        shell: pwsh
+        run: ./Verify.ps1 -Aot -Runtime linux-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-release-packages
+          path: artifacts/*.nupkg
+          if-no-files-found: error
+      - name: Publish to NuGet.org
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) {
+            throw 'Repository secret NUGET_API_KEY is required.'
+          }
+          $packages = @(Get-ChildItem artifacts/*.nupkg)
+          if ($packages.Count -ne 2) { throw 'Expected exactly two NuGet packages.' }
+          foreach ($package in $packages) {
+            & dotnet nuget push $package.FullName --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { throw "Failed to publish $($package.Name)." }
+          }

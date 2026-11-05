@@ -3,13 +3,14 @@
     <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <XmlWeavePackageVersion Condition="'$(XmlWeavePackageVersion)' == ''">$(Version)</XmlWeavePackageVersion>
     <IsAotCompatible>true</IsAotCompatible>
     <RuntimeFrameworkVersion>8.0.33</RuntimeFrameworkVersion>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="XmlWeave.PackageTests.cs" />
-    <PackageReference Include="XmlWeave" Version="0.1.0" />
-    <PackageReference Include="XmlWeave.SourceGenerator" Version="0.1.0" />
+    <PackageReference Include="XmlWeave" Version="$(XmlWeavePackageVersion)" />
+    <PackageReference Include="XmlWeave.SourceGenerator" Version="$(XmlWeavePackageVersion)" />
   </ItemGroup>
 </Project>
