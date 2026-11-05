@@ -4,7 +4,6 @@
     <BaseOutputPath>bin\$(MSBuildProjectName)\</BaseOutputPath>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>disable</ImplicitUsings>
     <Version>0.1.1</Version>
     <Authors>RRQM</Authors>
     <RepositoryUrl>https://github.com/RRQM/XmlWeave</RepositoryUrl>
@@ -13,7 +12,6 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <GeneratePackageOnBuild Condition="'$(CI)' != 'true' and '$(ContinuousIntegrationBuild)' != 'true'">true</GeneratePackageOnBuild>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
