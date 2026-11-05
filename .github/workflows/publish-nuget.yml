@@ -65,7 +65,7 @@ jobs:
         uses: NuGet/login@v1
         id: login
         with:
-          user: ${{ vars.NUGET_USER }}
+          user: ${{ vars.NUGET_USER || secrets.NUGET_USER }}
       - name: Publish to NuGet.org
         shell: pwsh
         env:
