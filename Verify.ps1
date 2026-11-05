@@ -14,9 +14,17 @@ $package = [System.IO.Compression.ZipFile]::OpenRead((Join-Path $feed "XmlWeave.
 try {
     if (-not $package.GetEntry('analyzers/dotnet/cs/XmlWeave.SourceGenerator.dll')) { throw '主包缺少源生成器。' }
     if (-not $package.GetEntry('lib/net10.0/XmlWeave.dll')) { throw '主包缺少运行时。' }
+    foreach ($asset in @('README.md', 'icon.png')) {
+        $entry = $package.GetEntry($asset)
+        if (-not $entry -or $entry.Length -eq 0) { throw "主包缺少有效的 $asset。" }
+    }
     $reader = [System.IO.StreamReader]::new($package.GetEntry('XmlWeave.nuspec').Open())
     try { [xml]$nuspec = $reader.ReadToEnd() }
     finally { $reader.Dispose() }
+    foreach ($asset in @{ readme = 'README.md'; icon = 'icon.png' }.GetEnumerator()) {
+        $metadata = $nuspec.SelectSingleNode("//*[local-name()='$($asset.Key)']")
+        if (-not $metadata -or $metadata.InnerText -cne $asset.Value) { throw "主包 $($asset.Key) 元数据不正确。" }
+    }
     if ($nuspec.SelectNodes("//*[local-name()='dependency' and (@id='XmlWeave.SourceGenerator' or starts-with(@id, 'Microsoft.CodeAnalysis'))]").Count -ne 0) {
         throw '主包不应声明源生成器或 Roslyn 包依赖。'
     }

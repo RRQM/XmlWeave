@@ -1,8 +1,90 @@
 # XmlWeave
 
-通用、强类型、无运行时反射的 XML 序列化库。MIT 许可证。
+![XmlWeave icon](https://raw.githubusercontent.com/RRQM/XmlWeave/main/assets/icon.png)
 
-> 当前版本 **0.1.4**。已在 Windows x64、.NET SDK 10.0.403 验证测试、实际 NuGet 包消费者、裁剪及 NativeAOT 发布运行。源码包含 Linux CI；Linux 验证以 GitHub Actions 实际运行结果为准。尚未发布到 NuGet。
+通用、强类型、无运行时反射的 XML 序列化库。通过增量源生成器在编译期生成专用序列化代码，适用于 .NET 10、裁剪和 NativeAOT 应用。MIT 许可证。
+
+[NuGet 包](https://www.nuget.org/packages/XmlWeave) · [源码与问题反馈](https://github.com/RRQM/XmlWeave)
+
+> 当前版本 **0.1.5**。已发布版本见 [NuGet.org](https://www.nuget.org/packages/XmlWeave)。Windows x64 和 Linux CI 已验证测试、真实包消费、裁剪及 NativeAOT。
+
+## 核心特性
+
+- **编译期生成**：标记模型即可获得强类型序列化器，无运行时反射、动态代码生成或模型 DOM。
+- **单包即用**：运行时与源生成器一并提供，无需单独安装分析器。
+- **多种入口**：支持字符串、Stream、UTF-8 Span、IBufferWriter<byte> 和 ReadOnlySequence<byte>。
+- **低分配路径**：UTF-8 缓冲区入口直接读写；预热后的内置标量模型写入可实现零额外托管分配，具体边界见下文。
+- **丰富模型支持**：常用标量、可空类型、嵌套对象、继承、一维数组、List 和 Dictionary。
+- **可控 XML 表示**：属性或元素映射、成员重命名、忽略成员、自定义转换器，以及缩进和换行配置。
+- **严格读取**：拒绝未知或重复成员，异常提供 XML 路径和位置；禁止 DTD 和外部资源，并限制深度与字符数。
+- **AOT 友好**：真实 NuGet 包消费者纳入裁剪与 NativeAOT 验证。
+
+## 安装与基本用法
+
+项目需要以 `net10.0` 为目标，并使用 .NET SDK 10.0.400 或更新的 10.0 补丁版本。
+
+```shell
+dotnet add package XmlWeave
+```
+
+在控制台项目的 `Program.cs` 中使用以下完整示例：
+
+```csharp
+using System;
+using XmlWeave;
+
+var book = new Book { Id = 1, Title = "Hello XML" };
+string xml = BookXmlSerializer.Serialize(book);
+Console.WriteLine(xml);
+
+Book restored = BookXmlSerializer.Deserialize(xml);
+Console.WriteLine(restored.Title);
+
+[XmlWeaveRoot]
+public class Book
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = "";
+}
+```
+
+`BookXmlSerializer` 由源生成器自动生成，与 `Book` 位于同一命名空间，不需要手写或声明 `partial`。默认情况下，简单成员写为 XML 属性，复杂成员写为子元素。模型应为顶级、非泛型、非抽象类，具有可访问的无参构造函数和公开可读写成员。
+
+### 自定义成员映射
+
+```csharp
+[XmlWeaveRoot]
+public class Article
+{
+    [XmlWeaveMember(Name = "id")]
+    public int Id { get; set; }
+
+    [XmlWeaveMember(Representation = XmlWeaveRepresentation.Element)]
+    public string Title { get; set; } = "";
+
+    [XmlWeaveIgnore]
+    public string LocalNote { get; set; } = "";
+}
+```
+
+仍使用 `ArticleXmlSerializer.Serialize` / `Deserialize` 读写。输入须符合模型契约，不会静默忽略未知成员；不支持自动多态或任意 XML 命名空间映射。
+
+### UTF-8 缓冲区与流
+
+以下代码接在基本用法中的模型创建之后：
+
+```csharp
+var buffer = new System.Buffers.ArrayBufferWriter<byte>(4096);
+BookXmlSerializer.Serialize(buffer, book);
+Book fromUtf8 = BookXmlSerializer.Deserialize(buffer.WrittenSpan);
+
+using var stream = new System.IO.MemoryStream();
+BookXmlSerializer.Serialize(stream, book);
+stream.Position = 0;
+Book fromStream = BookXmlSerializer.Deserialize(stream);
+```
+
+流写入为 UTF-8 无 BOM，调用结束后不会关闭流；读取前应定位到 XML 起始位置。需要可读格式时，可向 `Serialize` 传入 `XmlWeaveOptions`，详见“序列化格式”。
 
 ## 包与平台
 
