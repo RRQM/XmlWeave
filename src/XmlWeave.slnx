@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/.Solutions/">
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="XmlWeave/XmlWeave.csproj" />
+  <Project Path="XmlWeave.SourceGenerator/XmlWeave.SourceGenerator.csproj" />
+  <Project Path="XmlWeave.Tests/XmlWeave.Tests.csproj" />
+</Solution>

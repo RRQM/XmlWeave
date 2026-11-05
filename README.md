@@ -32,17 +32,22 @@
 
 ## 源码与解决方案
 
-根目录的 `XmlWeave.slnx` 为构建和测试入口，需要 .NET SDK 10.0.400 或更新的 10.0 补丁版本（由 `global.json` 固定特性带）。产品目标框架仍为 .NET 8 / netstandard2.0；运行测试和消费者需要 .NET 8 运行时。
+`src/XmlWeave.slnx` 为构建和测试入口，需要 .NET SDK 10.0.400 或更新的 10.0 补丁版本（由根目录 `global.json` 固定特性带）。产品目标框架仍为 .NET 8 / netstandard2.0；运行测试和消费者需要 .NET 8 运行时。
 
+解决方案和公共构建配置独立置于 `src`，各项目及其源码放在各自子目录：
+
+- `src/XmlWeave.slnx`、`src/Directory.Build.props`：解决方案及公共构建配置，配置文件显示在 `.Solutions` 解决方案文件夹中。
 - `src/XmlWeave/`：运行时项目及源码。
 - `src/XmlWeave.SourceGenerator/`：源生成器项目及源码。
-- 根目录保留单元测试、包消费者测试、验证脚本及文档；包消费者不加入解决方案，以便先打包再从本地源安装验证。
+- `src/XmlWeave.Tests/`：单元测试项目及源码。
+- `src/XmlWeave.PackageTests/`：包消费者测试项目及源码，不加入解决方案，以便先打包再从本地源安装验证。
+- 根目录保留验证脚本、SDK 配置、文档与许可证。
 
-可在根目录执行 `dotnet build XmlWeave.slnx -c Release`。
+可在根目录执行 `dotnet build src/XmlWeave.slnx -c Release`。
 
 ## 验证与打包
 
-运行 `dotnet test XmlWeave.slnx -c Release`，当前 30 项测试全部通过。测试包含生成器诊断、生成代码编译、往返边界、继承、可空、集合、字典、文本精确保留、严格结构、安全读取及对象图循环。
+运行 `dotnet test src/XmlWeave.slnx -c Release`，当前 30 项测试全部通过。测试包含生成器诊断、生成代码编译、往返边界、继承、可空、集合、字典、文本精确保留、严格结构、安全读取及对象图循环。
 
 `./Verify.ps1` 执行测试、两个包的打包、隔离缓存的真实 NuGet 安装消费者运行及裁剪发布运行。Windows 使用 `./Verify.ps1 -Aot -Runtime win-x64` 额外验证 NativeAOT；Linux 可使用 PowerShell 7 执行 `./Verify.ps1 -Aot -Runtime linux-x64`。AOT 要求对应平台原生工具链。
 
