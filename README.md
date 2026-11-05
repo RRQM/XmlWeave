@@ -60,7 +60,7 @@ var copy = MyModelXmlSerializer.Deserialize(buffer.WrittenSpan);
 - `src/XmlWeave.PackageTests/`：包消费者测试项目及源码，不加入解决方案，以便先打包再从本地源安装验证。
 - 根目录保留验证脚本、SDK 配置、文档与许可证。
 
-可在根目录执行 `dotnet build src/XmlWeave.slnx -c Release`。
+可在根目录执行 `dotnet build src/XmlWeave.slnx -c Release`。本地构建会自动生成 NuGet 包；若 `D:\Nuget\local` 已存在，构建或显式打包后会尝试将生成的 `.nupkg` 复制到该目录，复制失败仅报告警告。目录不存在时跳过，不会自动创建；CI（`CI=true` 或 `ContinuousIntegrationBuild=true`）不启用自动打包和复制。可通过 `-p:GeneratePackageOnBuild=false` 关闭构建时自动打包。
 
 ## 验证与打包
 
@@ -72,6 +72,18 @@ var copy = MyModelXmlSerializer.Deserialize(buffer.WrittenSpan);
 
 ## 发布与 CI 状态
 
-验证脚本使用 .NET 10 执行测试、实际包消费、裁剪及可选 NativeAOT 验证。GitHub Actions 工作流位于 `.github/workflows/ci.yml`，推送和 PR 时在 Linux 执行完整验证并上传 nupkg；不自动发布到 NuGet。
+验证脚本使用 .NET 10 执行测试、实际包消费、裁剪及可选 NativeAOT 验证。GitHub Actions 工作流位于 `.github/workflows/ci.yml`，推送和 PR 时在 Linux 执行完整验证并上传 nupkg；该验证流程不发布到 NuGet，发布由以下独立工作流负责。
 
-实际发布需要维护者明确授权并配置 NuGet Trusted Publishing 或提供受控发布凭据；本实现不读取或搜索敏感凭据。原子文件保存、业务格式版本及消费者迁移策略不属于本库职责。
+### 发布到 NuGet.org
+
+`.github/workflows/publish-nuget.yml` 在推送到 `main`（包括合并 PR）后，比较本次推送前后的 `src/Directory.Build.props` 中的 `Version`。仅版本号发生变化时执行验证和发布；其他属性或普通代码修改不发布，PR 和其他分支不发布。比较覆盖一次推送中的全部提交，无需创建标签或 GitHub Release。
+
+1. 在仓库 Actions Secrets 中设置 `NUGET_API_KEY`，密钥需要具有 `XmlWeave` 包的推送权限。
+2. 更新 `src/Directory.Build.props` 的 `Version`（消费者验证项目通过 `XmlWeavePackageVersion` 默认使用该版本），例如从 `0.1.1` 升级到 `0.1.2`；预发布版本可使用 `0.2.0-rc.1`。
+3. 将版本改动与需要发布的代码一起提交并合并到 `main`。流程自动执行测试、打包、真实 NuGet 包消费者、裁剪与 NativeAOT 验证，上传单个 `XmlWeave.<Version>.nupkg`（已内置生成器），全部通过后使用 Secret 发布到 NuGet.org。
+
+首次合并此工作流时，若版本号未改变，则不会发布当前版本。失败后可在 Actions 中重新运行对应的工作流。
+
+重复运行会跳过 NuGet.org 上已存在的版本，以便安全重试；已发布的版本不能覆盖，修改内容后需递增版本号。密钥仅注入发布步骤，不应提交到仓库。首次发布前请确认 `XmlWeave` 包名可用。
+
+原子文件保存、业务格式版本及消费者迁移策略不属于本库职责。
