@@ -4,7 +4,7 @@
     <BaseOutputPath>bin\$(MSBuildProjectName)\</BaseOutputPath>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <Version>0.1.2</Version>
+    <Version>0.1.3</Version>
     <Authors>RRQM</Authors>
     <RepositoryUrl>https://github.com/RRQM/XmlWeave</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
