@@ -25,6 +25,13 @@ internal static class Program
             Values = new List<int?> { null, 42 },
             Map = new Dictionary<string, string?> { ["\r\n"] = null, [""] = "" }
         };
+        var buffer = new System.Buffers.ArrayBufferWriter<byte>(4096);
+        PackageModelXmlSerializer.Serialize(buffer, model);
+        if (PackageModelXmlSerializer.Deserialize(buffer.WrittenSpan).Text != model.Text)
+            throw new Exception("UTF8 缓冲区实际包验证失败。");
+        var sequence = new System.Buffers.ReadOnlySequence<byte>(buffer.WrittenMemory);
+        if (PackageModelXmlSerializer.Deserialize(sequence).Number != model.Number)
+            throw new Exception("分段缓冲区实际包验证失败。");
         using var stream = new MemoryStream();
         PackageModelXmlSerializer.Serialize(stream, model);
         if (stream.ToArray()[0] != (byte)'<') throw new Exception("输出包含 BOM。");
