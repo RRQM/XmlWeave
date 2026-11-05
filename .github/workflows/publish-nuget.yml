@@ -41,6 +41,9 @@ jobs:
     needs: detect-version
     if: needs.detect-version.outputs.changed == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -58,13 +61,18 @@ jobs:
           name: nuget-release-packages
           path: artifacts/*.nupkg
           if-no-files-found: error
+      - name: Login to NuGet.org
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ vars.NUGET_USER }}
       - name: Publish to NuGet.org
         shell: pwsh
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) {
-            throw 'Repository secret NUGET_API_KEY is required.'
+            throw 'NuGet trusted publishing did not return an API key.'
           }
           $packages = @(Get-ChildItem artifacts/*.nupkg)
           if ($packages.Count -ne 1 -or $packages[0].Name -notlike 'XmlWeave.*.nupkg' -or $packages[0].Name -like 'XmlWeave.SourceGenerator.*') { throw 'Expected exactly one XmlWeave NuGet package with the embedded generator.' }
