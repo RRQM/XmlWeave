@@ -2,13 +2,13 @@
 
 通用、强类型、无运行时反射的 XML 序列化库。MIT 许可证。
 
-> 当前版本 **0.1.0**。已在 Windows x64、.NET SDK 8.0.426 验证测试、实际 NuGet 包消费者、裁剪及 NativeAOT 发布运行。源码包含 Linux CI；Linux 验证以 GitHub Actions 实际运行结果为准。尚未发布到 NuGet。
+> 当前版本 **0.1.1**。已在 Windows x64、.NET SDK 8.0.426 验证测试、实际 NuGet 包消费者、裁剪及 NativeAOT 发布运行。源码包含 Linux CI；Linux 验证以 GitHub Actions 实际运行结果为准。尚未发布到 NuGet。
 
 ## 包与平台
 
-- `XmlWeave`：运行时，目标 .NET 8。
-- `XmlWeave.SourceGenerator`：增量源生成器，目标 netstandard2.0，编译器要求 Roslyn 4.8+。通过 NuGet 的 `analyzers/dotnet/cs` 自动加载，不向消费者添加运行时依赖。
-- 两个包均为 `0.1.0`；安装时需要同时引用。NuGet 名称是否可注册以实际发布结果为准。
+- 仅发布 `XmlWeave` 一个 NuGet 包，包含 .NET 8 运行时和增量源生成器；消费者只需引用 `XmlWeave`。
+- 源生成器目标 netstandard2.0，编译器要求 Roslyn 4.8+，内置于主包的 `analyzers/dotnet/cs` 并自动加载，不添加生成器或 Roslyn 的运行时依赖。
+- `XmlWeave.SourceGenerator` 仅作为内部构建项目，不独立打包或发布。NuGet 名称是否可注册以实际发布结果为准。
 
 ## 公共 API
 
@@ -49,9 +49,9 @@
 
 运行 `dotnet test src/XmlWeave.slnx -c Release`，当前 30 项测试全部通过。测试包含生成器诊断、生成代码编译、往返边界、继承、可空、集合、字典、文本精确保留、严格结构、安全读取及对象图循环。
 
-`./Verify.ps1` 执行测试、两个包的打包、隔离缓存的真实 NuGet 安装消费者运行及裁剪发布运行。Windows 使用 `./Verify.ps1 -Aot -Runtime win-x64` 额外验证 NativeAOT；Linux 可使用 PowerShell 7 执行 `./Verify.ps1 -Aot -Runtime linux-x64`。AOT 要求对应平台原生工具链。
+`./Verify.ps1` 执行测试、单个 XmlWeave 包的打包、隔离缓存的真实 NuGet 安装消费者运行及裁剪发布运行。Windows 使用 `./Verify.ps1 -Aot -Runtime win-x64` 额外验证 NativeAOT；Linux 可使用 PowerShell 7 执行 `./Verify.ps1 -Aot -Runtime linux-x64`。AOT 要求对应平台原生工具链。
 
-本地构建包路径：`artifacts/XmlWeave.0.1.0.nupkg` 和 `artifacts/XmlWeave.SourceGenerator.0.1.0.nupkg`。消费者验证项目仅使用 PackageReference，不使用 ProjectReference；它是自动化测试而非使用示例。
+本地构建包路径：`artifacts/XmlWeave.<Version>.nupkg`，版本由 `src/Directory.Build.props` 统一定义。消费者验证项目仅使用 PackageReference，不使用 ProjectReference；它是自动化测试而非使用示例。
 
 ## 发布与 CI 状态
 

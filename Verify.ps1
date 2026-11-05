@@ -7,8 +7,21 @@ function Invoke-DotNet {
 }
 Invoke-DotNet test (Join-Path $PSScriptRoot 'src\XmlWeave.slnx') -c Release
 Invoke-DotNet pack (Join-Path $PSScriptRoot 'src\XmlWeave\XmlWeave.csproj') -c Release -o artifacts
-Invoke-DotNet pack (Join-Path $PSScriptRoot 'src\XmlWeave.SourceGenerator\XmlWeave.SourceGenerator.csproj') -c Release -o artifacts
 $feed = Join-Path $PSScriptRoot 'artifacts'
+$version = Invoke-DotNet msbuild (Join-Path $PSScriptRoot 'src\XmlWeave\XmlWeave.csproj') '-getProperty:Version'
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$package = [System.IO.Compression.ZipFile]::OpenRead((Join-Path $feed "XmlWeave.$version.nupkg"))
+try {
+    if (-not $package.GetEntry('analyzers/dotnet/cs/XmlWeave.SourceGenerator.dll')) { throw '主包缺少源生成器。' }
+    if (-not $package.GetEntry('lib/net8.0/XmlWeave.dll')) { throw '主包缺少运行时。' }
+    $reader = [System.IO.StreamReader]::new($package.GetEntry('XmlWeave.nuspec').Open())
+    try { [xml]$nuspec = $reader.ReadToEnd() }
+    finally { $reader.Dispose() }
+    if ($nuspec.SelectNodes("//*[local-name()='dependency' and (@id='XmlWeave.SourceGenerator' or starts-with(@id, 'Microsoft.CodeAnalysis'))]").Count -ne 0) {
+        throw '主包不应声明源生成器或 Roslyn 包依赖。'
+    }
+}
+finally { $package.Dispose() }
 $consumerProject = Join-Path $PSScriptRoot 'src\XmlWeave.PackageTests\XmlWeave.PackageTests.csproj'
 # 使用隔离包缓存，避免同版本的旧本地包影响验证。
 $previousPackages = $env:NUGET_PACKAGES
