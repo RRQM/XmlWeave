@@ -2,7 +2,7 @@
 
 通用、强类型、无运行时反射的 XML 序列化库。MIT 许可证。
 
-> 当前版本 **0.1.1**。已在 Windows x64、.NET SDK 10.0.403 验证测试、实际 NuGet 包消费者、裁剪及 NativeAOT 发布运行。源码包含 Linux CI；Linux 验证以 GitHub Actions 实际运行结果为准。尚未发布到 NuGet。
+> 当前版本 **0.1.4**。已在 Windows x64、.NET SDK 10.0.403 验证测试、实际 NuGet 包消费者、裁剪及 NativeAOT 发布运行。源码包含 Linux CI；Linux 验证以 GitHub Actions 实际运行结果为准。尚未发布到 NuGet。
 
 ## 包与平台
 
@@ -99,7 +99,7 @@ var copy = MyModelXmlSerializer.Deserialize(buffer.WrittenSpan);
 发布使用 [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing)，无需配置长期 `NUGET_API_KEY` Secret。
 
 1. 在 NuGet.org 创建受信任发布策略：Repository Owner 为 `RRQM`，Repository 为 `XmlWeave`，Workflow File 为 `publish-nuget.yml`（仅文件名），Environment 留空（当前发布 job 未配置环境）。策略所选 Package Owner 需要具有 `XmlWeave` 包的发布权限。
-2. 在仓库 Settings → Secrets and variables → Actions → Variables 中设置 `NUGET_USER`，值为具有相应权限的 NuGet 登录用户名，不是邮箱或组织名。
+2. 在仓库 Settings → Secrets and variables → Actions 中设置 `NUGET_USER`，可使用 Variables 或 Secrets；同时存在时优先使用 Variable。值为具有相应权限的 NuGet 登录用户名，不是邮箱或组织名。
 3. 更新 `src/Directory.Build.props` 的 `Version`（消费者验证项目通过 `XmlWeavePackageVersion` 默认使用该版本），例如从 `0.1.1` 升级到 `0.1.2`；预发布版本可使用 `0.2.0-rc.1`。
 4. 将版本改动与需要发布的代码一起提交并合并到 `main`。流程自动执行测试、打包、真实 NuGet 包消费者、裁剪与 NativeAOT 验证，上传单个 `XmlWeave.<Version>.nupkg`（已内置生成器），全部通过后由 `NuGet/login@v1` 使用 GitHub OIDC 获取临时 API Key 并发布到 NuGet.org。只有发布 job 获得 `id-token: write` 权限。
 
