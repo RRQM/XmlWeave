@@ -4,7 +4,6 @@
     <BaseOutputPath>bin\$(MSBuildProjectName)\</BaseOutputPath>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>disable</ImplicitUsings>
     <Version>0.1.1</Version>
     <Authors>RRQM</Authors>
     <RepositoryUrl>https://github.com/RRQM/XmlWeave</RepositoryUrl>
@@ -12,11 +11,18 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GeneratePackageOnBuild Condition="'$(CI)' != 'true' and '$(ContinuousIntegrationBuild)' != 'true'">true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
+  <Target Name="CopyNuGetPackage" AfterTargets="Pack"
+          Condition="'$(CI)' != 'true' and '$(ContinuousIntegrationBuild)' != 'true' and '$(IsPackable)' != 'false' and Exists('D:\Nuget\local')">
+    <Copy SourceFiles="$(PackageOutputPath)\$(PackageId).$(PackageVersion).nupkg"
+          DestinationFolder="D:\Nuget\local"
+          SkipUnchangedFiles="true"
+          ContinueOnError="WarnAndContinue" />
+  </Target>
 </Project>

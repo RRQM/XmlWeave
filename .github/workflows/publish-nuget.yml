@@ -1,0 +1,74 @@
+name: Publish NuGet
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: publish-nuget-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  detect-version:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.version.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect package version change
+        id: version
+        shell: pwsh
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'src/Directory.Build.props'
+          [xml]$current = Get-Content -LiteralPath $path -Raw
+          $version = [string]$current.Project.PropertyGroup.Version
+          if ([string]::IsNullOrWhiteSpace($version)) { throw 'Package Version is required.' }
+          $previousVersion = ''
+          if ($env:BEFORE_SHA -notmatch '^0+$') {
+            $previousContent = & git show "$($env:BEFORE_SHA):$path"
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to read previous package version.' }
+            [xml]$previous = $previousContent -join "`n"
+            $previousVersion = [string]$previous.Project.PropertyGroup.Version
+          }
+          $changed = ($version -cne $previousVersion).ToString().ToLowerInvariant()
+          "changed=$changed" >> $env:GITHUB_OUTPUT
+          Write-Host "Package version: '$previousVersion' -> '$version'; changed=$changed"
+  publish:
+    needs: detect-version
+    if: needs.detect-version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Install NativeAOT prerequisites
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+      - name: Test, pack, consume packages, trim and NativeAOT
+        shell: pwsh
+        run: ./Verify.ps1 -Aot -Runtime linux-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-release-packages
+          path: artifacts/*.nupkg
+          if-no-files-found: error
+      - name: Publish to NuGet.org
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) {
+            throw 'Repository secret NUGET_API_KEY is required.'
+          }
+          $packages = @(Get-ChildItem artifacts/*.nupkg)
+          if ($packages.Count -ne 1 -or $packages[0].Name -notlike 'XmlWeave.*.nupkg' -or $packages[0].Name -like 'XmlWeave.SourceGenerator.*') { throw 'Expected exactly one XmlWeave NuGet package with the embedded generator.' }
+          foreach ($package in $packages) {
+            & dotnet nuget push $package.FullName --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { throw "Failed to publish $($package.Name)." }
+          }
