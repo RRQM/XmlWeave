@@ -5,5 +5,16 @@
     <IsAotCompatible>true</IsAotCompatible>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
   </PropertyGroup>
-  <ItemGroup><Compile Include="XmlWeave.Runtime.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="XmlWeave.Runtime.cs" />
+    <ProjectReference Include="..\XmlWeave.SourceGenerator\XmlWeave.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+  <Target Name="IncludeSourceGeneratorInPackage" BeforeTargets="_GetPackageFiles">
+    <MSBuild Projects="..\XmlWeave.SourceGenerator\XmlWeave.SourceGenerator.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration);TargetFramework=netstandard2.0">
+      <Output TaskParameter="TargetOutputs" ItemName="_SourceGeneratorAssembly" />
+    </MSBuild>
+    <ItemGroup>
+      <None Include="@(_SourceGeneratorAssembly)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
 </Project>
