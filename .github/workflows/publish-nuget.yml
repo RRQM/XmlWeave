@@ -1,35 +1,53 @@
 name: Publish NuGet
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
 permissions:
   contents: read
 concurrency:
-  group: publish-nuget-${{ github.event.release.tag_name }}
+  group: publish-nuget-${{ github.sha }}
   cancel-in-progress: false
 jobs:
-  publish:
+  detect-version:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.version.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+      - name: Detect package version change
+        id: version
+        shell: pwsh
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'src/Directory.Build.props'
+          [xml]$current = Get-Content -LiteralPath $path -Raw
+          $version = [string]$current.Project.PropertyGroup.Version
+          if ([string]::IsNullOrWhiteSpace($version)) { throw 'Package Version is required.' }
+          $previousVersion = ''
+          if ($env:BEFORE_SHA -notmatch '^0+$') {
+            $previousContent = & git show "$($env:BEFORE_SHA):$path"
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to read previous package version.' }
+            [xml]$previous = $previousContent -join "`n"
+            $previousVersion = [string]$previous.Project.PropertyGroup.Version
+          }
+          $changed = ($version -cne $previousVersion).ToString().ToLowerInvariant()
+          "changed=$changed" >> $env:GITHUB_OUTPUT
+          Write-Host "Package version: '$previousVersion' -> '$version'; changed=$changed"
+  publish:
+    needs: detect-version
+    if: needs.detect-version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
             8.0.x
             10.0.x
-      - name: Validate release version
-        shell: pwsh
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          $version = & dotnet msbuild src/XmlWeave/XmlWeave.csproj -nologo -getProperty:Version
-          if ($LASTEXITCODE -ne 0) { throw 'Failed to read package version.' }
-          $version = ($version -join "`n").Trim()
-          if ($env:RELEASE_TAG -cne "v$version") {
-            throw "Release tag must be v$version to match src/Directory.Build.props."
-          }
       - name: Install NativeAOT prerequisites
         run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
       - name: Test, pack, consume packages, trim and NativeAOT

@@ -59,12 +59,13 @@
 
 ### 发布到 NuGet.org
 
-`.github/workflows/publish-nuget.yml` 在 GitHub Release 发布（`published`）时触发，草稿 Release 或仅推送标签不会触发：
+`.github/workflows/publish-nuget.yml` 在推送到 `main`（包括合并 PR）后，比较本次推送前后的 `src/Directory.Build.props` 中的 `Version`。仅版本号发生变化时执行验证和发布；其他属性或普通代码修改不发布，PR 和其他分支不发布。比较覆盖一次推送中的全部提交，无需创建标签或 GitHub Release。
 
 1. 在仓库 Actions Secrets 中设置 `NUGET_API_KEY`，密钥需要具有 `XmlWeave` 和 `XmlWeave.SourceGenerator` 两个包的推送权限。
-2. 更新 `src/Directory.Build.props` 的 `Version`（消费者验证项目通过 `XmlWeavePackageVersion` 默认使用该版本），提交并合并发布代码。
-3. 从该提交创建并发布 GitHub Release，标签必须为 `v<Version>`，例如 `v0.1.0`；预发布版本同样需要在 `Version` 中带后缀，例如 `0.2.0-rc.1` 对应 `v0.2.0-rc.1`。流程检查标签与项目版本一致，不会根据标签覆盖包版本。
-4. 流程检出该标签，执行测试、打包、真实 NuGet 包消费者、裁剪与 NativeAOT 验证，上传两个 `.nupkg`，全部通过后使用 Secret 发布到 NuGet.org。
+2. 更新 `src/Directory.Build.props` 的 `Version`（消费者验证项目通过 `XmlWeavePackageVersion` 默认使用该版本），例如从 `0.1.0` 升级到 `0.1.1`；预发布版本可使用 `0.2.0-rc.1`。
+3. 将版本改动与需要发布的代码一起提交并合并到 `main`。流程自动执行测试、打包、真实 NuGet 包消费者、裁剪与 NativeAOT 验证，上传两个 `.nupkg`，全部通过后使用 Secret 发布到 NuGet.org。
+
+首次合并此工作流时，若版本号未改变，则不会发布当前版本。失败后可在 Actions 中重新运行对应的工作流。
 
 重复运行会跳过 NuGet.org 上已存在的版本，以便恢复部分发布；已发布的版本不能覆盖，修改内容后需递增版本号。密钥仅注入发布步骤，不应提交到仓库。首次发布前请确认两个包名可用。
 
