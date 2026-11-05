@@ -7,9 +7,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="XmlWeave.Tests.cs" />
-    <ProjectReference Include="src\XmlWeave\XmlWeave.csproj" />
-    <ProjectReference Include="src\XmlWeave.SourceGenerator\XmlWeave.SourceGenerator.csproj" />
-    <Analyzer Include="src\XmlWeave.SourceGenerator\bin\XmlWeave.SourceGenerator\$(Configuration)\netstandard2.0\XmlWeave.SourceGenerator.dll" />
+    <ProjectReference Include="..\XmlWeave\XmlWeave.csproj" />
+    <ProjectReference Include="..\XmlWeave.SourceGenerator\XmlWeave.SourceGenerator.csproj" />
+    <Analyzer Include="..\XmlWeave.SourceGenerator\bin\XmlWeave.SourceGenerator\$(Configuration)\netstandard2.0\XmlWeave.SourceGenerator.dll" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
