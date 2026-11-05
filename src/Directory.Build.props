@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>RRQM</Authors>
     <RepositoryUrl>https://github.com/RRQM/XmlWeave</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
