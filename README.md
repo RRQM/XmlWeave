@@ -30,9 +30,19 @@
 - 严格拒绝未知属性、未知元素、重复成员、缺失非空属性和缺失元素。格式异常提供 XML 路径、行、列；读取器级异常只能提供根路径。XML 注释及处理指令不参与模型数据。
 - XML 读取禁止 DTD 和外部资源。默认最大深度 64、字符数 10,000,000，通过 XmlWeaveOptions 可调整。限制不是常量内存保证；运行时仍使用 XElement 中间树，写入限制在建树后检查。转换器是受信任的应用程序代码，不在隔离环境执行。
 
+## 源码与解决方案
+
+根目录的 `XmlWeave.slnx` 为构建和测试入口，需要 .NET SDK 10.0.400 或更新的 10.0 补丁版本（由 `global.json` 固定特性带）。产品目标框架仍为 .NET 8 / netstandard2.0；运行测试和消费者需要 .NET 8 运行时。
+
+- `src/XmlWeave/`：运行时项目及源码。
+- `src/XmlWeave.SourceGenerator/`：源生成器项目及源码。
+- 根目录保留单元测试、包消费者测试、验证脚本及文档；包消费者不加入解决方案，以便先打包再从本地源安装验证。
+
+可在根目录执行 `dotnet build XmlWeave.slnx -c Release`。
+
 ## 验证与打包
 
-运行 `dotnet test XmlWeave.Tests.csproj -c Release`，当前 30 项测试全部通过。测试包含生成器诊断、生成代码编译、往返边界、继承、可空、集合、字典、文本精确保留、严格结构、安全读取及对象图循环。
+运行 `dotnet test XmlWeave.slnx -c Release`，当前 30 项测试全部通过。测试包含生成器诊断、生成代码编译、往返边界、继承、可空、集合、字典、文本精确保留、严格结构、安全读取及对象图循环。
 
 `./Verify.ps1` 执行测试、两个包的打包、隔离缓存的真实 NuGet 安装消费者运行及裁剪发布运行。Windows 使用 `./Verify.ps1 -Aot -Runtime win-x64` 额外验证 NativeAOT；Linux 可使用 PowerShell 7 执行 `./Verify.ps1 -Aot -Runtime linux-x64`。AOT 要求对应平台原生工具链。
 

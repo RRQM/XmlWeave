@@ -5,9 +5,9 @@ function Invoke-DotNet {
     & dotnet @args
     if ($LASTEXITCODE -ne 0) { throw "dotnet 失败：$args" }
 }
-Invoke-DotNet test XmlWeave.Tests.csproj -c Release
-Invoke-DotNet pack XmlWeave.csproj -c Release -o artifacts
-Invoke-DotNet pack XmlWeave.SourceGenerator.csproj -c Release -o artifacts
+Invoke-DotNet test XmlWeave.slnx -c Release
+Invoke-DotNet pack (Join-Path $PSScriptRoot 'src\XmlWeave\XmlWeave.csproj') -c Release -o artifacts
+Invoke-DotNet pack (Join-Path $PSScriptRoot 'src\XmlWeave.SourceGenerator\XmlWeave.SourceGenerator.csproj') -c Release -o artifacts
 $feed = Join-Path $PSScriptRoot 'artifacts'
 # 使用隔离包缓存，避免同版本的旧本地包影响验证。
 $previousPackages = $env:NUGET_PACKAGES
