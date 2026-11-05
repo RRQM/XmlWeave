@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/XmlWeave/XmlWeave.csproj" />
+  <Project Path="src/XmlWeave.SourceGenerator/XmlWeave.SourceGenerator.csproj" />
+  <Project Path="XmlWeave.Tests.csproj" />
+</Solution>
